@@ -56,9 +56,23 @@ def create(body: dict) -> dict:
     org, subject = body.get("org_id"), body.get("subject_id") or body.get("unit_id")
     if not org or not subject:
         raise HTTPException(422, "org_id and unit_id (or subject_id) are required")
-    case = {"org_id": org, "unit_id": subject, "route": body.get("route") or sample_data.route(subject, org),
-            "returned": body.get("returned", sample_data.has("returns", subject, org))}
+      
+    case = {
+        "org_id": org,
+        "unit_id": subject,
+        "route": body.get("route") or sample_data.route(subject, org),
+        "returned": body.get(
+            "returned",
+            sample_data.has("returns", subject, org)
+        )
+    }
+
+    if body.get("run_id"):
+        case["run_id"] = str(body["run_id"])
+
     return run_workflow(case, load_flow(FLOW), STORE)
+
+    
 
 
 def _get(workflow_id: str) -> dict:
