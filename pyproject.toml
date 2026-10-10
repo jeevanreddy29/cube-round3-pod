@@ -1,3 +1,2 @@
-﻿[tool.vercel]
+[tool.vercel]
 entrypoint = "orchestration.api:app"
-
