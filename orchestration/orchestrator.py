@@ -74,8 +74,12 @@ def discover_inputs(subject_id: str, stage: str) -> list[dict]:
 
 # ---------------------------------------------------------------- workflow state
 def workflow_id_for(case: dict) -> str:
-    return f"WF-{case['org_id']}-{case.get('subject_id') or case['unit_id']}"
-
+    base = (
+        f"WF-{case['org_id']}-"
+        f"{case.get('subject_id') or case['unit_id']}"
+    )
+    run_id = case.get("run_id")
+    return f"{base}-{run_id}" if run_id else base
 
 def _log(wf: dict, event: str, stage: str | None = None, detail: str | None = None, **extra) -> None:
     wf["transitions"].append({"at": utcnow(), "event": event, "stage": stage, "detail": detail, **extra})
