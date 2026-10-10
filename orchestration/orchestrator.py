@@ -19,7 +19,7 @@ import os
 import time
 from pathlib import Path
 
-from shared.utils.hashing import verify
+from shared.utils.hashing import seal, verify
 from shared.utils.log import get_logger
 from shared.utils.records import error_obj, pending_output, utcnow
 from shared.utils.schema import errors as schema_errors
@@ -138,6 +138,8 @@ def _validate(out: dict, wf: dict, stage: str) -> list[str]:
     if bad:
         return bad[:3]
     ev = out["evidence"]
+
+ 
     if out["stage"] != stage or ev["stage"] != stage:
         return [f"stage mismatch: expected {stage!r}, got {out['stage']!r}/{ev['stage']!r}"]
     if out["workflow_id"] != wf["workflow_id"] or ev["workflow_id"] != wf["workflow_id"]:
@@ -196,8 +198,18 @@ def _run_stage(wf: dict, sr: dict, idx: int, opts: dict, store, client) -> dict 
                              agent_id=sr["agent_id"])
         _log(wf, "stage_degraded", stage, f"{err['code']}: recorded as {out['evidence']['status']}; flow policy decides what next")
 
+    
     ev = out["evidence"]
+
+    # Give each fresh dashboard run unique evidence IDs.
+    run_id = wf["context"].get("run_id")
+    if run_id:
+        ev["record_id"] = f"{ev['record_id']}-{run_id}"
+        ev = seal(ev)
+        out["evidence"] = ev
+
     store.put_evidence(ev)
+
     if ev["record_id"] not in wf["evidence_references"]:
         wf["evidence_references"].append(ev["record_id"])
     agent_err = ev.get("error") or err
