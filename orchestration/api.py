@@ -23,7 +23,8 @@ from .store import EvidenceConflict, FileStore
 
 app = FastAPI(title="CUBE Round 3 orchestrator")
 FLOW = os.environ.get("ORCH_FLOW") or default_flow_path()
-STORE = FileStore()
+OUT_DIR = os.environ.get("OUT_DIR") or ("/tmp/out" if os.environ.get("VERCEL") else "out")
+STORE = FileStore(OUT_DIR)
 
 
 @app.get("/")
