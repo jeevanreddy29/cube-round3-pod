@@ -240,12 +240,16 @@ document.getElementById("runForm").addEventListener(
     document.getElementById("results").hidden = true;
     document.getElementById("evidencePanel").hidden = true;
 
+   
     const payload = {
       org_id: document.getElementById("org").value.trim(),
       unit_id: document.getElementById("unit").value.trim(),
       route: document.getElementById("route").value,
-      returned: document.getElementById("returned").checked
+      returned: document.getElementById("returned").checked,
+      run_id: Date.now().toString(36) +
+              Math.random().toString(36).slice(2, 8)
     };
+
 
     try {
       const response = await fetch("/workflows", {
