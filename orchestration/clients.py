@@ -43,18 +43,50 @@ class HttpClient:
         env = f"{manifest['stage'].upper()}_URL"
         self.url = os.environ.get(env, manifest["url"]).rstrip("/")
 
+
     def run(self, request: dict, timeout_s: float) -> dict:
         try:
-            resp = httpx.post(f"{self.url}/run", json=request, timeout=timeout_s)
+            resp = httpx.post(
+                f"{self.url}/run",
+                json=request,
+                timeout=timeout_s,
+            )
+        except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+            raise AgentUnavailable(
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
         except httpx.TimeoutException as exc:
-            raise AgentTimeout(f"{type(exc).__name__}: {exc}") from exc
+            raise AgentTimeout(
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
         except httpx.HTTPError as exc:
-            raise AgentUnavailable(f"{type(exc).__name__}: {exc}") from exc
+            raise AgentUnavailable(
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+
         if 400 <= resp.status_code < 500:
-            raise AgentRejected(f"HTTP {resp.status_code}: {resp.text[:300]}")
+            raise AgentRejected(
+                f"HTTP {resp.status_code}: {resp.text[:300]}"
+            )
+
         if resp.status_code >= 500:
-            raise AgentUnavailable(f"HTTP {resp.status_code}: {resp.text[:300]}")
-        return resp.json()
+            raise AgentUnavailable(
+                f"HTTP {resp.status_code}: {resp.text[:300]}"
+            )
+
+        try:
+            result = resp.json()
+        except ValueError as exc:
+            raise AgentUnavailable(
+                "Agent returned invalid JSON"
+            ) from exc
+
+        if not isinstance(result, dict):
+            raise AgentUnavailable(
+                "Agent returned a non-object JSON response"
+            )
+
+        return result
 
     def health(self) -> dict:
         return httpx.get(f"{self.url}/health", timeout=5).json()
